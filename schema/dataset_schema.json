@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Key LLM Dataset Schema",
+  "description": "Dataset schema for instruction-tuning our Key LLM. Maps AXUIElement metadata to execution verdict (pass/block).",
+  "type": "object",
+  "properties": {
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["system", "user", "assistant"]
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "required": ["role", "content"]
+      }
+    }
+  },
+  "required": ["messages"]
+}
