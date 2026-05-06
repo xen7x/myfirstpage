@@ -1,0 +1,17 @@
+# Exclude raw VM data, python dependencies, and logs to ensure a zero-fat extraction
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+.venv/
+conda/
+miniconda/
+docker/
+*.log
+*.sqlite
+*.db
+/tmp/
