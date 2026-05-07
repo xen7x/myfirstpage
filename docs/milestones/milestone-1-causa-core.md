@@ -129,13 +129,44 @@ def determine_replay_decision(
     pass
 ```
 
+## Replay Eligibility Rule
+
+A historical case may return `replay_candidate` only if:
+- current UI snapshot exactly matches the historical UI fingerprint
+- business object identity is verified
+- action payload hash matches
+- prior HumanApproval exists
+- prior OutcomeEvidence exists and indicates success
+- ReplayPolicy is valid and not expired
+- current risk level is below Risk 3
+- no safety constraint is violated
+
+Otherwise:
+- Risk 3 or higher => `requires_human_anchor`
+- failed prior outcome => `do_not_replay`
+- partial UI match => `requires_llm_reasoning`
+- expired ReplayPolicy => `requires_human_anchor`
+
 ## Unit Test Cases
 
 - **exact UI match + Risk 1 + successful outcome:** Should return `replay_candidate`.
 - **exact UI match + Risk 3:** Should return `requires_human_anchor`.
 - **failed prior outcome:** Should return `do_not_replay`.
 - **partial UI match:** Should return `requires_llm_reasoning`.
-- **expired replay policy:** Should return `requires_llm_reasoning` (or `requires_human_anchor` based on fallback logic).
+- **expired replay policy:** Should return `requires_human_anchor`.
+
+## Schema Notes
+
+The initial schema is conceptual. The implementation version should consider adding:
+- ui_fingerprint_hash
+- business_object_id
+- action_payload_hash
+- app_bundle_id
+- app_version
+- outcome_status
+- replay_allowed
+- risk_threshold
+- required_match_score
 
 ## Safety Constraints
 

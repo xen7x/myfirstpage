@@ -28,7 +28,16 @@ We define the user's **"Enter"** key stroke as the ultimate anchor point of caus
 
 ## 3. Implementation Dogmas
 
-1. **Deterministic First**: If a 100% UI match and a confirmed "Enter" anchor exist in the DB, bypass LLM inference and execute within milliseconds.
+1. **Deterministic First**: Bypass LLM inference and execute within milliseconds *only* when all of the following are true:
+   - exact UI fingerprint match
+   - same or verified business object identity
+   - same action payload hash
+   - valid HumanApproval (Note: a HumanApproval proves only approval, not success)
+   - successful OutcomeEvidence
+   - valid, non-expired ReplayPolicy
+   - risk level is within the policy's auto-replay threshold
+
+   *Operations at Risk 3 or higher strictly require a Human Anchor (re-approval) regardless of these conditions.*
 2. **Precedent Injection**: Inject "Past Self" contexts into the prompt before the LLM begins reasoning. Do not let the LLM "think" from scratch; let it "remember."
 3. **Strict Decoupling**: Separate the **Proposal Layer (LLM)** from the **Policy/Approval Layer (DB/Human)**. An LLM must never self-approve its own risky actions.
 
