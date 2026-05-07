@@ -1,0 +1,151 @@
+# Milestone 1: Causa Core
+
+This document defines the first safe implementation boundary for the Anchor DB ("Causa") project.
+
+## SQLite Schema Design
+
+```sql
+CREATE TABLE AnchorCase (
+    id TEXT PRIMARY KEY,
+    user_intent TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE UISnapshot (
+    id TEXT PRIMARY KEY,
+    anchor_case_id TEXT NOT NULL,
+    ax_tree_json TEXT NOT NULL,
+    image_hash TEXT NOT NULL,
+    FOREIGN KEY(anchor_case_id) REFERENCES AnchorCase(id)
+);
+
+CREATE TABLE LLMProposal (
+    id TEXT PRIMARY KEY,
+    anchor_case_id TEXT NOT NULL,
+    action_sequence TEXT NOT NULL,
+    risk_level INTEGER NOT NULL,
+    FOREIGN KEY(anchor_case_id) REFERENCES AnchorCase(id)
+);
+
+CREATE TABLE HumanApproval (
+    id TEXT PRIMARY KEY,
+    llm_proposal_id TEXT NOT NULL,
+    approved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(llm_proposal_id) REFERENCES LLMProposal(id)
+);
+
+CREATE TABLE ExecutionEvent (
+    id TEXT PRIMARY KEY,
+    human_approval_id TEXT NOT NULL,
+    executed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(human_approval_id) REFERENCES HumanApproval(id)
+);
+
+CREATE TABLE OutcomeEvidence (
+    id TEXT PRIMARY KEY,
+    execution_event_id TEXT NOT NULL,
+    success BOOLEAN NOT NULL,
+    post_execution_state TEXT,
+    FOREIGN KEY(execution_event_id) REFERENCES ExecutionEvent(id)
+);
+
+CREATE TABLE ReplayPolicy (
+    id TEXT PRIMARY KEY,
+    anchor_case_id TEXT NOT NULL,
+    expires_at DATETIME NOT NULL,
+    FOREIGN KEY(anchor_case_id) REFERENCES AnchorCase(id)
+);
+```
+
+## Python Data Models
+
+```python
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Optional
+
+@dataclass
+class AnchorCase:
+    id: str
+    user_intent: str
+    created_at: datetime
+
+@dataclass
+class UISnapshot:
+    id: str
+    anchor_case_id: str
+    ax_tree_json: str
+    image_hash: str
+
+@dataclass
+class LLMProposal:
+    id: str
+    anchor_case_id: str
+    action_sequence: str
+    risk_level: int
+
+@dataclass
+class HumanApproval:
+    id: str
+    llm_proposal_id: str
+    approved_at: datetime
+
+@dataclass
+class ExecutionEvent:
+    id: str
+    human_approval_id: str
+    executed_at: datetime
+
+@dataclass
+class OutcomeEvidence:
+    id: str
+    execution_event_id: str
+    success: bool
+    post_execution_state: Optional[str]
+
+@dataclass
+class ReplayPolicy:
+    id: str
+    anchor_case_id: str
+    expires_at: datetime
+```
+
+## Deterministic Replay Decision Function
+
+```python
+def determine_replay_decision(
+    current_ui_snapshot: UISnapshot,
+    historical_cases: list[dict],
+    current_risk_level: int
+) -> str:
+    """
+    Returns one of:
+    - 'replay_candidate'
+    - 'requires_llm_reasoning'
+    - 'requires_human_anchor'
+    - 'do_not_replay'
+    """
+    # Pseudo-implementation for documentation purposes
+    pass
+```
+
+## Unit Test Cases
+
+- **exact UI match + Risk 1 + successful outcome:** Should return `replay_candidate`.
+- **exact UI match + Risk 3:** Should return `requires_human_anchor`.
+- **failed prior outcome:** Should return `do_not_replay`.
+- **partial UI match:** Should return `requires_llm_reasoning`.
+- **expired replay policy:** Should return `requires_llm_reasoning` (or `requires_human_anchor` based on fallback logic).
+
+## Safety Constraints
+
+- No OS execution yet
+- No sudo or privilege escalation logic
+- No destructive operations
+- No Dify integration yet
+- No Accessibility API calls yet
+- No autonomous replay yet
+- LLM proposals must never self-approve risky actions
+- HumanApproval and OutcomeEvidence must be stored separately
+- A previous HumanApproval proves only that the user approved an action; it does not prove that the action succeeded
+- Replay eligibility requires both a valid HumanApproval record and a successful OutcomeEvidence record
