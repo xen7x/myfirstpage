@@ -10,6 +10,7 @@ from causa_core.models import (
     OutcomeEvidence,
     ReplayPolicy,
     ReplayDecision,
+    AnchorRecord,
 )
 
 
@@ -81,3 +82,35 @@ def determine_replay_decision(
         return make_decision("requires_human_anchor", "ACTION_PAYLOAD_MISMATCH", "Action payload hash does not match.")
 
     return make_decision("replay_candidate", "REPLAY_ELIGIBLE", "All checks passed. Replay is eligible.")
+
+
+def determine_replay_decision_from_record(
+    current_ui_snapshot: UISnapshot,
+    current_risk_level: int,
+    current_business_object_id: Optional[str],
+    current_action_payload_hash: str,
+    historical_record: Optional[AnchorRecord],
+    current_time: datetime,
+) -> ReplayDecision:
+    if historical_record is None:
+        return ReplayDecision(
+            status="do_not_replay",
+            reason_code="MISSING_ANCHOR_RECORD",
+            message="No historical AnchorRecord was found.",
+            anchor_case_id=None,
+        )
+
+    return determine_replay_decision(
+        current_ui_snapshot=current_ui_snapshot,
+        current_risk_level=current_risk_level,
+        current_business_object_id=current_business_object_id,
+        current_action_payload_hash=current_action_payload_hash,
+        historical_case=historical_record.anchor_case,
+        historical_ui_snapshot=historical_record.ui_snapshot,
+        historical_proposal=historical_record.llm_proposal,
+        historical_approval=historical_record.human_approval,
+        historical_execution=historical_record.execution_event,
+        historical_outcome=historical_record.outcome_evidence,
+        historical_policy=historical_record.replay_policy,
+        current_time=current_time,
+    )

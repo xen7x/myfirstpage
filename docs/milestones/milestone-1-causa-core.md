@@ -188,6 +188,16 @@ The initial schema is conceptual. The implementation version should consider add
 - Replay decisions still require explicit validation by decision.py
 - AnchorRecord is a convenience aggregation, not an automatic replay permission
 
+## AnchorRecord Decision Adapter
+
+- The adapter allows replay decisions to be made from a full AnchorRecord
+- It accepts AnchorRecord or None because repositories may not find a matching record
+- It is only a convenience wrapper around determine_replay_decision
+- It does not perform persistence
+- It does not query repositories
+- It does not grant replay permission by itself
+- ReplayDecision remains the authoritative output
+
 ## Safety Constraints
 
 - No OS execution yet
