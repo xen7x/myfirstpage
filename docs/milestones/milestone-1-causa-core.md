@@ -207,6 +207,16 @@ The initial schema is conceptual. The implementation version should consider add
 - AuditSummary does not query storage
 - AuditSummary exists to make decisions reviewable and auditable
 
+## Non-executing End-to-End Simulation
+
+- Causa Core can now simulate the full decision path without executing any action
+- The simulated path is:
+  AnchorRecord -> Repository -> ReplayDecision -> AuditSummary
+- These tests prove integration of the core layers
+- They do not perform OS operations
+- They do not perform autonomous replay
+- They do not use external storage
+
 ## Safety Constraints
 
 - No OS execution yet
