@@ -198,6 +198,15 @@ The initial schema is conceptual. The implementation version should consider add
 - It does not grant replay permission by itself
 - ReplayDecision remains the authoritative output
 
+## Audit Summary
+
+- ReplayDecision is the authoritative machine-readable result
+- AuditSummary is the human-readable explanation layer
+- AuditSummary does not grant replay permission
+- AuditSummary does not perform execution
+- AuditSummary does not query storage
+- AuditSummary exists to make decisions reviewable and auditable
+
 ## Safety Constraints
 
 - No OS execution yet

@@ -77,3 +77,12 @@ class AnchorRecord:
     execution_event: Optional[ExecutionEvent]
     outcome_evidence: Optional[OutcomeEvidence]
     replay_policy: Optional[ReplayPolicy]
+
+
+@dataclass
+class AuditSummary:
+    status: str
+    reason_code: str
+    anchor_case_id: Optional[str]
+    summary: str
+    details: list[str]
