@@ -8,6 +8,7 @@ class AnchorCase:
     id: str
     user_intent: str
     created_at: datetime
+    business_object_id: Optional[str]
 
 
 @dataclass
@@ -16,6 +17,7 @@ class UISnapshot:
     anchor_case_id: str
     ax_tree_json: str
     image_hash: str
+    ui_fingerprint_hash: str
 
 
 @dataclass
@@ -24,6 +26,7 @@ class LLMProposal:
     anchor_case_id: str
     action_sequence: str
     risk_level: int
+    action_payload_hash: str
 
 
 @dataclass
@@ -53,3 +56,5 @@ class ReplayPolicy:
     id: str
     anchor_case_id: str
     expires_at: datetime
+    replay_allowed: bool
+    max_auto_replay_risk_level: int
