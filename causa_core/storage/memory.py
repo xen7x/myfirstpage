@@ -8,6 +8,7 @@ from causa_core.models import (
     ExecutionEvent,
     OutcomeEvidence,
     ReplayPolicy,
+    AnchorRecord,
 )
 from causa_core.repository import CausaRepository
 
@@ -66,3 +67,49 @@ class InMemoryCausaRepository(CausaRepository):
 
     def get_replay_policy(self, replay_policy_id: str) -> Optional[ReplayPolicy]:
         return self._replay_policies.get(replay_policy_id)
+
+    def save_anchor_record(self, anchor_record: AnchorRecord) -> None:
+        self.save_anchor_case(anchor_record.anchor_case)
+        if anchor_record.ui_snapshot:
+            self.save_ui_snapshot(anchor_record.ui_snapshot)
+        if anchor_record.llm_proposal:
+            self.save_llm_proposal(anchor_record.llm_proposal)
+        if anchor_record.human_approval:
+            self.save_human_approval(anchor_record.human_approval)
+        if anchor_record.execution_event:
+            self.save_execution_event(anchor_record.execution_event)
+        if anchor_record.outcome_evidence:
+            self.save_outcome_evidence(anchor_record.outcome_evidence)
+        if anchor_record.replay_policy:
+            self.save_replay_policy(anchor_record.replay_policy)
+
+    def get_anchor_record(self, anchor_case_id: str) -> Optional[AnchorRecord]:
+        anchor_case = self.get_anchor_case(anchor_case_id)
+        if not anchor_case:
+            return None
+
+        ui_snapshot = next((s for s in self._ui_snapshots.values() if s.anchor_case_id == anchor_case_id), None)
+        llm_proposal = next((p for p in self._llm_proposals.values() if p.anchor_case_id == anchor_case_id), None)
+        replay_policy = next((p for p in self._replay_policies.values() if p.anchor_case_id == anchor_case_id), None)
+
+        human_approval = None
+        if llm_proposal:
+            human_approval = next((a for a in self._human_approvals.values() if a.llm_proposal_id == llm_proposal.id), None)
+
+        execution_event = None
+        if human_approval:
+            execution_event = next((e for e in self._execution_events.values() if e.human_approval_id == human_approval.id), None)
+
+        outcome_evidence = None
+        if execution_event:
+            outcome_evidence = next((o for o in self._outcome_evidences.values() if o.execution_event_id == execution_event.id), None)
+
+        return AnchorRecord(
+            anchor_case=anchor_case,
+            ui_snapshot=ui_snapshot,
+            llm_proposal=llm_proposal,
+            human_approval=human_approval,
+            execution_event=execution_event,
+            outcome_evidence=outcome_evidence,
+            replay_policy=replay_policy,
+        )

@@ -10,6 +10,7 @@ from causa_core.models import (
     ExecutionEvent,
     OutcomeEvidence,
     ReplayPolicy,
+    AnchorRecord,
 )
 
 
@@ -72,4 +73,12 @@ class CausaRepository(ABC):
 
     @abstractmethod
     def get_replay_policy(self, replay_policy_id: str) -> Optional[ReplayPolicy]:
+        pass
+
+    @abstractmethod
+    def save_anchor_record(self, anchor_record: AnchorRecord) -> None:
+        pass
+
+    @abstractmethod
+    def get_anchor_record(self, anchor_case_id: str) -> Optional[AnchorRecord]:
         pass

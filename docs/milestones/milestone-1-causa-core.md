@@ -180,6 +180,14 @@ The initial schema is conceptual. The implementation version should consider add
 - PostgreSQL / Supabase can be added later via storage adapters
 - replay decisions must not depend on a specific database backend
 
+## AnchorRecord Aggregation
+
+- AnchorRecord represents one logical precedent case
+- It groups AnchorCase, UISnapshot, LLMProposal, HumanApproval, ExecutionEvent, OutcomeEvidence, and ReplayPolicy
+- It may be partial because missing evidence must remain representable
+- Replay decisions still require explicit validation by decision.py
+- AnchorRecord is a convenience aggregation, not an automatic replay permission
+
 ## Safety Constraints
 
 - No OS execution yet

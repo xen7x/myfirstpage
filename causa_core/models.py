@@ -66,3 +66,14 @@ class ReplayDecision:
     reason_code: str
     message: str
     anchor_case_id: Optional[str]
+
+
+@dataclass
+class AnchorRecord:
+    anchor_case: AnchorCase
+    ui_snapshot: Optional[UISnapshot]
+    llm_proposal: Optional[LLMProposal]
+    human_approval: Optional[HumanApproval]
+    execution_event: Optional[ExecutionEvent]
+    outcome_evidence: Optional[OutcomeEvidence]
+    replay_policy: Optional[ReplayPolicy]
