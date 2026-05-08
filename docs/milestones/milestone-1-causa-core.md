@@ -217,6 +217,15 @@ The initial schema is conceptual. The implementation version should consider add
 - They do not perform autonomous replay
 - They do not use external storage
 
+## Milestone Completion
+
+Milestone 1 is considered complete for v1.0-alpha as:
+- AnchorRecord exists
+- ReplayDecision exists
+- AuditSummary exists
+- InMemoryRepository exists
+- non-executing E2E tests pass
+
 ## Safety Constraints
 
 - No OS execution yet

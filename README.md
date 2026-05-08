@@ -6,6 +6,13 @@ Anchor (and its DB layer, Causa) is an execution engine aiming to transform the 
 - **Current Status**: Research/Prototype
 - **Safety Status**: No autonomous OS execution is implemented yet
 
+## Current Version
+- Causa Core v1.0-alpha
+- Non-executing
+- Storage-agnostic
+- InMemoryRepository only
+- SQLite local adapter is the next likely persistence step
+
 ## Current Capabilities
 
 Causa Core currently supports the following capabilities:
