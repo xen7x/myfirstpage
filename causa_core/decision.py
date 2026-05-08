@@ -9,6 +9,7 @@ from causa_core.models import (
     ExecutionEvent,
     OutcomeEvidence,
     ReplayPolicy,
+    ReplayDecision,
 )
 
 
@@ -25,35 +26,45 @@ def determine_replay_decision(
     historical_outcome: Optional[OutcomeEvidence],
     historical_policy: Optional[ReplayPolicy],
     current_time: datetime,
-) -> str:
+) -> ReplayDecision:
     """
-    Returns one of:
-    - 'replay_candidate'
-    - 'requires_llm_reasoning'
-    - 'requires_human_anchor'
-    - 'do_not_replay'
+    Returns a ReplayDecision object containing the status, reason code, message, and anchor_case_id.
     """
 
+    anchor_id = historical_case.id if historical_case else None
+
+    def make_decision(status: str, reason_code: str, message: str) -> ReplayDecision:
+        return ReplayDecision(
+            status=status,
+            reason_code=reason_code,
+            message=message,
+            anchor_case_id=anchor_id
+        )
+
     # Check for execution/outcome failures
-    if historical_outcome is None or historical_execution is None:
-        return "do_not_replay"
+    if historical_outcome is None:
+        return make_decision("do_not_replay", "MISSING_OUTCOME_EVIDENCE", "Historical outcome evidence is missing.")
+    if historical_execution is None:
+        return make_decision("do_not_replay", "MISSING_EXECUTION_EVENT", "Historical execution event is missing.")
     if not historical_outcome.success:
-        return "do_not_replay"
+        return make_decision("do_not_replay", "FAILED_PRIOR_OUTCOME", "The historical execution failed.")
 
     # Check for missing approvals or policies
     if historical_approval is None:
-        return "requires_human_anchor"
-    if historical_policy is None or current_time > historical_policy.expires_at:
-        return "requires_human_anchor"
+        return make_decision("requires_human_anchor", "MISSING_HUMAN_APPROVAL", "Historical human approval is missing.")
+    if historical_policy is None:
+        return make_decision("requires_human_anchor", "MISSING_REPLAY_POLICY", "Historical replay policy is missing.")
+    if current_time > historical_policy.expires_at:
+        return make_decision("requires_human_anchor", "EXPIRED_REPLAY_POLICY", "The replay policy has expired.")
     if not historical_policy.replay_allowed:
-        return "requires_human_anchor"
+        return make_decision("requires_human_anchor", "REPLAY_NOT_ALLOWED", "Replay is not allowed by the policy.")
 
     # Check risk thresholds
     effective_risk_level = max(current_risk_level, historical_proposal.risk_level)
     if effective_risk_level >= 3:
-        return "requires_human_anchor"
+        return make_decision("requires_human_anchor", "RISK_REQUIRES_HUMAN_ANCHOR", "Risk level is 3 or higher, requiring human anchor.")
     if effective_risk_level > historical_policy.max_auto_replay_risk_level:
-        return "requires_human_anchor"
+        return make_decision("requires_human_anchor", "RISK_ABOVE_POLICY_THRESHOLD", "Risk level exceeds the policy threshold.")
 
     # Check UI Match
     if (
@@ -61,12 +72,12 @@ def determine_replay_decision(
         or current_ui_snapshot.ax_tree_json != historical_ui_snapshot.ax_tree_json
         or current_ui_snapshot.image_hash != historical_ui_snapshot.image_hash
     ):
-        return "requires_llm_reasoning"
+        return make_decision("requires_llm_reasoning", "UI_FINGERPRINT_MISMATCH", "Current UI fingerprint does not exactly match the historical UI.")
 
     # Check object and payload matches
     if current_business_object_id != historical_case.business_object_id:
-        return "requires_human_anchor"
+        return make_decision("requires_human_anchor", "BUSINESS_OBJECT_MISMATCH", "Business object ID does not match.")
     if current_action_payload_hash != historical_proposal.action_payload_hash:
-        return "requires_human_anchor"
+        return make_decision("requires_human_anchor", "ACTION_PAYLOAD_MISMATCH", "Action payload hash does not match.")
 
-    return "replay_candidate"
+    return make_decision("replay_candidate", "REPLAY_ELIGIBLE", "All checks passed. Replay is eligible.")

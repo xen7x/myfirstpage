@@ -58,3 +58,11 @@ class ReplayPolicy:
     expires_at: datetime
     replay_allowed: bool
     max_auto_replay_risk_level: int
+
+
+@dataclass
+class ReplayDecision:
+    status: str
+    reason_code: str
+    message: str
+    anchor_case_id: Optional[str]

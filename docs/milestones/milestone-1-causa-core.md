@@ -113,17 +113,20 @@ class ReplayPolicy:
 ## Deterministic Replay Decision Function
 
 ```python
+@dataclass
+class ReplayDecision:
+    status: str
+    reason_code: str
+    message: str
+    anchor_case_id: Optional[str]
+
 def determine_replay_decision(
     current_ui_snapshot: UISnapshot,
     historical_cases: list[dict],
     current_risk_level: int
-) -> str:
+) -> ReplayDecision:
     """
-    Returns one of:
-    - 'replay_candidate'
-    - 'requires_llm_reasoning'
-    - 'requires_human_anchor'
-    - 'do_not_replay'
+    Returns a ReplayDecision object containing the status, reason code, message, and anchor_case_id.
     """
     # Pseudo-implementation for documentation purposes
     pass

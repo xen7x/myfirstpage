@@ -63,7 +63,6 @@ class TestReplayDecision(unittest.TestCase):
         )
 
     def test_exact_ui_match_risk_1_successful_outcome(self):
-        # exact UI match + Risk 1 + successful outcome => replay_candidate
         decision = determine_replay_decision(
             current_ui_snapshot=self.ui_snapshot,
             current_risk_level=1,
@@ -78,10 +77,10 @@ class TestReplayDecision(unittest.TestCase):
             historical_policy=self.policy,
             current_time=self.now,
         )
-        self.assertEqual(decision, "replay_candidate")
+        self.assertEqual(decision.status, "replay_candidate")
+        self.assertEqual(decision.reason_code, "REPLAY_ELIGIBLE")
 
     def test_exact_ui_match_risk_3(self):
-        # exact UI match + Risk 3 => requires_human_anchor
         decision = determine_replay_decision(
             current_ui_snapshot=self.ui_snapshot,
             current_risk_level=3,
@@ -96,10 +95,10 @@ class TestReplayDecision(unittest.TestCase):
             historical_policy=self.policy,
             current_time=self.now,
         )
-        self.assertEqual(decision, "requires_human_anchor")
+        self.assertEqual(decision.status, "requires_human_anchor")
+        self.assertEqual(decision.reason_code, "RISK_REQUIRES_HUMAN_ANCHOR")
 
     def test_failed_prior_outcome(self):
-        # failed prior outcome => do_not_replay
         failed_outcome = OutcomeEvidence(
             id="out1", execution_event_id="exec1", success=False, post_execution_state="error"
         )
@@ -117,10 +116,10 @@ class TestReplayDecision(unittest.TestCase):
             historical_policy=self.policy,
             current_time=self.now,
         )
-        self.assertEqual(decision, "do_not_replay")
+        self.assertEqual(decision.status, "do_not_replay")
+        self.assertEqual(decision.reason_code, "FAILED_PRIOR_OUTCOME")
 
     def test_partial_ui_match(self):
-        # partial UI match => requires_llm_reasoning
         different_ui = UISnapshot(
             id="snap2",
             anchor_case_id="case1",
@@ -142,10 +141,10 @@ class TestReplayDecision(unittest.TestCase):
             historical_policy=self.policy,
             current_time=self.now,
         )
-        self.assertEqual(decision, "requires_llm_reasoning")
+        self.assertEqual(decision.status, "requires_llm_reasoning")
+        self.assertEqual(decision.reason_code, "UI_FINGERPRINT_MISMATCH")
 
     def test_expired_replay_policy(self):
-        # expired ReplayPolicy => requires_human_anchor
         decision = determine_replay_decision(
             current_ui_snapshot=self.ui_snapshot,
             current_risk_level=1,
@@ -158,12 +157,12 @@ class TestReplayDecision(unittest.TestCase):
             historical_execution=self.execution,
             historical_outcome=self.outcome,
             historical_policy=self.policy,
-            current_time=self.now + timedelta(days=2), # current time is past expiry
+            current_time=self.now + timedelta(days=2),
         )
-        self.assertEqual(decision, "requires_human_anchor")
+        self.assertEqual(decision.status, "requires_human_anchor")
+        self.assertEqual(decision.reason_code, "EXPIRED_REPLAY_POLICY")
 
     def test_missing_human_approval(self):
-        # missing HumanApproval => requires_human_anchor
         decision = determine_replay_decision(
             current_ui_snapshot=self.ui_snapshot,
             current_risk_level=1,
@@ -178,10 +177,10 @@ class TestReplayDecision(unittest.TestCase):
             historical_policy=self.policy,
             current_time=self.now,
         )
-        self.assertEqual(decision, "requires_human_anchor")
+        self.assertEqual(decision.status, "requires_human_anchor")
+        self.assertEqual(decision.reason_code, "MISSING_HUMAN_APPROVAL")
 
     def test_missing_outcome_evidence(self):
-        # missing OutcomeEvidence => do_not_replay
         decision = determine_replay_decision(
             current_ui_snapshot=self.ui_snapshot,
             current_risk_level=1,
@@ -196,7 +195,8 @@ class TestReplayDecision(unittest.TestCase):
             historical_policy=self.policy,
             current_time=self.now,
         )
-        self.assertEqual(decision, "do_not_replay")
+        self.assertEqual(decision.status, "do_not_replay")
+        self.assertEqual(decision.reason_code, "MISSING_OUTCOME_EVIDENCE")
 
     def test_missing_execution_event(self):
         decision = determine_replay_decision(
@@ -213,7 +213,26 @@ class TestReplayDecision(unittest.TestCase):
             historical_policy=self.policy,
             current_time=self.now,
         )
-        self.assertEqual(decision, "do_not_replay")
+        self.assertEqual(decision.status, "do_not_replay")
+        self.assertEqual(decision.reason_code, "MISSING_EXECUTION_EVENT")
+
+    def test_missing_replay_policy(self):
+        decision = determine_replay_decision(
+            current_ui_snapshot=self.ui_snapshot,
+            current_risk_level=1,
+            current_business_object_id="obj1",
+            current_action_payload_hash="payload123",
+            historical_case=self.anchor_case,
+            historical_ui_snapshot=self.ui_snapshot,
+            historical_proposal=self.proposal,
+            historical_approval=self.approval,
+            historical_execution=self.execution,
+            historical_outcome=self.outcome,
+            historical_policy=None,
+            current_time=self.now,
+        )
+        self.assertEqual(decision.status, "requires_human_anchor")
+        self.assertEqual(decision.reason_code, "MISSING_REPLAY_POLICY")
 
     def test_business_object_mismatch(self):
         decision = determine_replay_decision(
@@ -230,7 +249,8 @@ class TestReplayDecision(unittest.TestCase):
             historical_policy=self.policy,
             current_time=self.now,
         )
-        self.assertEqual(decision, "requires_human_anchor")
+        self.assertEqual(decision.status, "requires_human_anchor")
+        self.assertEqual(decision.reason_code, "BUSINESS_OBJECT_MISMATCH")
 
     def test_action_payload_mismatch(self):
         decision = determine_replay_decision(
@@ -247,7 +267,8 @@ class TestReplayDecision(unittest.TestCase):
             historical_policy=self.policy,
             current_time=self.now,
         )
-        self.assertEqual(decision, "requires_human_anchor")
+        self.assertEqual(decision.status, "requires_human_anchor")
+        self.assertEqual(decision.reason_code, "ACTION_PAYLOAD_MISMATCH")
 
     def test_replay_allowed_false(self):
         self.policy.replay_allowed = False
@@ -265,12 +286,14 @@ class TestReplayDecision(unittest.TestCase):
             historical_policy=self.policy,
             current_time=self.now,
         )
-        self.assertEqual(decision, "requires_human_anchor")
+        self.assertEqual(decision.status, "requires_human_anchor")
+        self.assertEqual(decision.reason_code, "REPLAY_NOT_ALLOWED")
 
     def test_current_risk_level_above_policy_threshold(self):
+        self.policy.max_auto_replay_risk_level = 1
         decision = determine_replay_decision(
             current_ui_snapshot=self.ui_snapshot,
-            current_risk_level=3,
+            current_risk_level=2,
             current_business_object_id="obj1",
             current_action_payload_hash="payload123",
             historical_case=self.anchor_case,
@@ -282,7 +305,8 @@ class TestReplayDecision(unittest.TestCase):
             historical_policy=self.policy,
             current_time=self.now,
         )
-        self.assertEqual(decision, "requires_human_anchor")
+        self.assertEqual(decision.status, "requires_human_anchor")
+        self.assertEqual(decision.reason_code, "RISK_ABOVE_POLICY_THRESHOLD")
 
     def test_historical_proposal_risk_higher_than_current_risk(self):
         self.proposal.risk_level = 3
@@ -300,7 +324,8 @@ class TestReplayDecision(unittest.TestCase):
             historical_policy=self.policy,
             current_time=self.now,
         )
-        self.assertEqual(decision, "requires_human_anchor")
+        self.assertEqual(decision.status, "requires_human_anchor")
+        self.assertEqual(decision.reason_code, "RISK_REQUIRES_HUMAN_ANCHOR")
 
     def test_ui_fingerprint_hash_mismatch(self):
         different_ui = UISnapshot(
@@ -324,7 +349,8 @@ class TestReplayDecision(unittest.TestCase):
             historical_policy=self.policy,
             current_time=self.now,
         )
-        self.assertEqual(decision, "requires_llm_reasoning")
+        self.assertEqual(decision.status, "requires_llm_reasoning")
+        self.assertEqual(decision.reason_code, "UI_FINGERPRINT_MISMATCH")
 
 if __name__ == '__main__':
     unittest.main()
