@@ -171,6 +171,15 @@ The initial schema is conceptual. The implementation version should consider add
 - risk_threshold
 - required_match_score
 
+## Storage Abstraction
+
+- Causa Core is storage-agnostic
+- decision.py must remain independent from storage
+- the in-memory repository is only for tests and local simulation
+- SQLite is the initial local persistence target
+- PostgreSQL / Supabase can be added later via storage adapters
+- replay decisions must not depend on a specific database backend
+
 ## Safety Constraints
 
 - No OS execution yet
