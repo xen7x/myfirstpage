@@ -35,9 +35,10 @@ def fetch_fred_dgs10_data(retries: int = 3, backoff_factor: float = 0.5) -> pd.D
         except (requests.RequestException, ValueError) as e:
             if attempt == retries - 1:
                 logger.error(f"Failed to fetch FRED data after {retries} attempts: {e}")
-                raise
-            sleep_time = backoff_factor * (2 ** attempt)
-            logger.warning(f"Attempt {attempt + 1} failed: {e}. Retrying in {sleep_time} seconds...")
-            time.sleep(sleep_time)
+                pass
+            else:
+                sleep_time = backoff_factor * (2 ** attempt)
+                logger.warning(f"Attempt {attempt + 1} failed: {e}. Retrying in {sleep_time} seconds...")
+                time.sleep(sleep_time)
 
-    raise Exception("Unreachable code")
+    raise RuntimeError("FRED API ingestion failed after max retries")
